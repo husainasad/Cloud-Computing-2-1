@@ -13,6 +13,7 @@ with open('lambda_config.json') as f:
 region = config.get("AWS_REGION") 
 input_bucket = config.get("INPUT_BUCKET")
 output_bucket = config.get("STAGE1_BUCKET")
+timeout = config.get("URL_TIMEOUT")
 
 session = boto3.Session(region_name=region)
 s3_client = session.client('s3')
@@ -36,7 +37,7 @@ def video_splitting_cmdline(video_url, video_filename):
     
 def generate_presigned_url(key):
     try:
-        url = s3_client.generate_presigned_url(ClientMethod='get_object', Params={'Bucket': input_bucket, 'Key': key}, ExpiresIn=300)
+        url = s3_client.generate_presigned_url(ClientMethod='get_object', Params={'Bucket': input_bucket, 'Key': key}, ExpiresIn=timeout)
         return url
     except Exception as e:
         print(f"Error generating presigned url : {str(e)}")
@@ -73,8 +74,17 @@ def process_objects():
         print("Unable to get bucket objects")
 
 def lambda_handler(event, context):
-    process_objects()
-    return {
-        'statusCode': 200,
-        'body': 'Function executed successfully'
-    }
+    try:
+        # process_objects()
+        video_key = event['Records'][0]['s3']['object']['key']
+        process_video(video_key)
+        return {
+            'statusCode': 200,
+            'body': 'Function executed successfully'
+        }
+    except Exception as e:
+        print(f"Error processing video: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': 'Error processing video'
+        }
