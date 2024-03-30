@@ -17,21 +17,55 @@ timeout = config.get("URL_TIMEOUT")
 
 session = boto3.Session(region_name=region)
 s3_client = session.client('s3')
-
+    
+def video_duration(video_url):
+    duration_cmd = f'{FFMPEG_PATH} -i "{video_url}" -f null -'
+    
+    try:
+        output = subprocess.check_output(duration_cmd, stderr=subprocess.STDOUT, shell=True)
+        duration_str = str(output).split("Duration: ")[1].split(",")[0]
+        duration_list = duration_str.split(":")
+        duration_seconds = int(duration_list[0]) * 3600 + int(duration_list[1]) * 60 + float(duration_list[2])
+        return duration_seconds
+    except subprocess.CalledProcessError as e:
+        print(e.returncode)
+        print(e.output)
+        return None
+        
 def video_splitting_cmdline(video_url, video_filename):
     outdir = os.path.join(TEMP_DIR, os.path.splitext(os.path.basename(video_filename))[0])
     os.makedirs(outdir, exist_ok=True)
     
-    split_cmd = f'{FFMPEG_PATH} -ss 0 -r 1 -i "{video_url}" -vf fps=1/10 -start_number 0 -vframes 10 "{outdir}/output-%02d.jpg" -y'
+    # original cmd
+    # split_cmd = f'{FFMPEG_PATH} -ss 0 -r 1 -i "{video_url}" -vf fps=1/10 -start_number 0 -vframes 10 "{outdir}/output-%02d.jpg" -y'
+
+    # Unevenly spaced frames
+    # split_cmd = f'{FFMPEG_PATH} -ss 0 -r 1 -i "{video_url}" -vf fps=1 -start_number 0 -vframes 10 "{outdir}/output-%02d.jpg" -y'
+    
+    # Evenly spaced frames
+
+    # Get video duration using ffmpeg
+    video_duration_sec = video_duration(video_url)
+
+    if video_duration_sec is None:
+        print("Error: Failed to get video duration.")
+        return None
+    
+    total_frames = 10
+    frame_interval = max(math.ceil(video_duration_sec / total_frames), 1)
+
+    split_cmd = f'{FFMPEG_PATH} -i "{video_url}" -vf "select=not(mod(n\,{frame_interval}))" -fps_mode vfr -q:v 2 -start_number 0 -vframes {total_frames} "{outdir}/output-%02d.jpg" -y'
+    
     try:
         subprocess.check_call(split_cmd, shell=True)
     except subprocess.CalledProcessError as e:
         print(e.returncode)
         print(e.output)
 
-    fps_cmd = f'{FFMPEG_PATH} -i "{video_url}" 2>&1 | sed -n "s/.*, \\(.*\\) fp.*/\\1/p"'
-    fps = subprocess.check_output(fps_cmd, shell=True).decode("utf-8").rstrip("\n")
-    fps = math.ceil(float(fps))
+    # Not required
+    # fps_cmd = f'{FFMPEG_PATH} -i "{video_url}" 2>&1 | sed -n "s/.*, \\(.*\\) fp.*/\\1/p"'
+    # fps = subprocess.check_output(fps_cmd, shell=True).decode("utf-8").rstrip("\n")
+    # fps = math.ceil(float(fps))
     
     return outdir
     
