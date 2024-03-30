@@ -1,0 +1,9 @@
+{
+  "AWS_REGION": "us-east-1",
+  "INPUT_BUCKET": "1225380117-input",
+  "STAGE1_BUCKET": "1225380117-stage-1",
+  "URL_TIMEOUT": 600,
+  "FFMPEG_PATH": "/opt/bin/ffmpeg",
+  "TOTAL_FRAMES": 10,
+  "TEMP_DIR": "/tmp"
+}

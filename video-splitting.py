@@ -4,26 +4,26 @@ import json
 import subprocess
 import math
 
-FFMPEG_PATH = '/opt/bin/ffmpeg'
-TEMP_DIR = '/tmp'
-
 with open('lambda_config.json') as f:
     config = json.load(f)
 
-region = config.get("AWS_REGION") 
+region = config.get("AWS_REGION")
 input_bucket = config.get("INPUT_BUCKET")
 output_bucket = config.get("STAGE1_BUCKET")
 timeout = config.get("URL_TIMEOUT")
+ffmpeg_path = config.get("FFMPEG_PATH")
+total_frames = config.get("TOTAL_FRAMES")
+temp_dir = config.get("TEMP_DIR")
 
 session = boto3.Session(region_name=region)
 s3_client = session.client('s3')
-    
+
 def video_duration(video_url):
-    duration_cmd = f'{FFMPEG_PATH} -i "{video_url}" -f null -'
+    duration_cmd = f'{ffmpeg_path} -i "{video_url}" 2>&1 | grep "Duration"'
     
     try:
-        output = subprocess.check_output(duration_cmd, stderr=subprocess.STDOUT, shell=True)
-        duration_str = str(output).split("Duration: ")[1].split(",")[0]
+        output = subprocess.check_output(duration_cmd, shell=True).decode('utf-8')
+        duration_str = output.split(",")[0].split(": ")[1]
         duration_list = duration_str.split(":")
         duration_seconds = int(duration_list[0]) * 3600 + int(duration_list[1]) * 60 + float(duration_list[2])
         return duration_seconds
@@ -33,28 +33,18 @@ def video_duration(video_url):
         return None
         
 def video_splitting_cmdline(video_url, video_filename):
-    outdir = os.path.join(TEMP_DIR, os.path.splitext(os.path.basename(video_filename))[0])
+    outdir = os.path.join(temp_dir, os.path.splitext(os.path.basename(video_filename))[0])
     os.makedirs(outdir, exist_ok=True)
     
-    # original cmd
-    # split_cmd = f'{FFMPEG_PATH} -ss 0 -r 1 -i "{video_url}" -vf fps=1/10 -start_number 0 -vframes 10 "{outdir}/output-%02d.jpg" -y'
-
-    # Unevenly spaced frames
-    # split_cmd = f'{FFMPEG_PATH} -ss 0 -r 1 -i "{video_url}" -vf fps=1 -start_number 0 -vframes 10 "{outdir}/output-%02d.jpg" -y'
-    
-    # Evenly spaced frames
-
-    # Get video duration using ffmpeg
     video_duration_sec = video_duration(video_url)
 
     if video_duration_sec is None:
         print("Error: Failed to get video duration.")
         return None
-    
-    total_frames = 10
+     
     frame_interval = max(math.ceil(video_duration_sec / total_frames), 1)
 
-    split_cmd = f'{FFMPEG_PATH} -i "{video_url}" -vf "select=not(mod(n\,{frame_interval}))" -fps_mode vfr -q:v 2 -start_number 0 -vframes {total_frames} "{outdir}/output-%02d.jpg" -y'
+    split_cmd = f'{ffmpeg_path} -i "{video_url}" -vf "select=not(mod(n\,{frame_interval}))" -fps_mode vfr -q:v 2 -start_number 0 -vframes {total_frames} "{outdir}/output-%02d.jpg" -y'
     
     try:
         subprocess.check_call(split_cmd, shell=True)
@@ -62,11 +52,6 @@ def video_splitting_cmdline(video_url, video_filename):
         print(e.returncode)
         print(e.output)
 
-    # Not required
-    # fps_cmd = f'{FFMPEG_PATH} -i "{video_url}" 2>&1 | sed -n "s/.*, \\(.*\\) fp.*/\\1/p"'
-    # fps = subprocess.check_output(fps_cmd, shell=True).decode("utf-8").rstrip("\n")
-    # fps = math.ceil(float(fps))
-    
     return outdir
     
 def generate_presigned_url(key):

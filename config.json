@@ -1,5 +1,0 @@
-{
-  "AWS_REGION": "us-east-1",
-  "INPUT_BUCKET": "1225380117-input",
-  "STAGE1_BUCKET": "1225380117-stage-1"
-}
