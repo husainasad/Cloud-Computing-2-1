@@ -5,5 +5,7 @@
   "URL_TIMEOUT": 600,
   "FFMPEG_PATH": "/opt/bin/ffmpeg",
   "TOTAL_FRAMES": 10,
-  "TEMP_DIR": "/tmp"
+  "TEMP_DIR": "/tmp",
+  "Memory": 128,
+  "Ephemeral Storage": 512
 }
