@@ -11,19 +11,17 @@ Since ffmpeg library is required to process the video, it needs to be added as a
 The steps to create ffmpeg layer are loosely based on [this](https://virkud-sarvesh.medium.com/building-ffmpeg-layer-for-a-lambda-function-a206f36d3edc) medium article and [this](https://aws.amazon.com/blogs/media/processing-user-generated-content-using-aws-lambda-and-ffmpeg/) aws guide. <br>
 
 ### Create FFmpeg zip
-Create the ffmpeg zip using the following commands:
+Create the ffmpeg zip using the 'install_ffmpeg.sh' script in AWS Cloudshell or any linux environment. <br>
+Make the script executable using the command:
 ```
-wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz.md5
-md5sum -c ffmpeg-release-amd64-static.tar.xz.md5
-tar xvf ffmpeg-release-amd64-static.tar.xz
-mkdir -p ffmpeg/bin
-cp ffmpeg-6.1-amd64-static/ffmpeg ffmpeg/bin/
-cd ffmpeg
-zip -r ../ffmpeg.zip .
-cd ..
-ls
+chmod +x install_ffmpeg.sh
 ```
+Then execute the script using the command:
+```
+./install_ffmpeg.sh
+```
+Once script has finished execution, look for ffmpeg.zip file and download it.<br>
+
 ### Create FFmpeg layer
 Create the layer by uploading the zip file from where you downloaded it (S3 or local). <br>
 Add the runtime of your lambda function in compatible runtimes. <br>
