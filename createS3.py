@@ -1,6 +1,6 @@
 import boto3, json
 
-with open('config.json') as f:
+with open('lambda_config.json') as f:
     config = json.load(f)
 
 S3_Names = [config["INPUT_BUCKET"], config["STAGE1_BUCKET"]]
