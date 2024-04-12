@@ -3,6 +3,9 @@ The application consists of :<br>
 * S3: To store user video uploads (input) and processed video frames (output).
 * Lambda: To automatically process user videos when they are uploaded to S3 using ffmpeg library, without the need for running servers.
 
+The architecture of the application is as follows:<br>
+![CC-Project2-Part1-Architecture](https://github.com/husainasad/Cloud-Computing-2-1/assets/32503674/f5ce3896-9a6c-46aa-91d6-9f0c57778798)
+
 ## Step 1: Create S3 Buckets
 The input and output S3 buckets can be created by running the 'createS3.py' script. </br>
 
